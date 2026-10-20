@@ -1,0 +1,47 @@
+name: 🛡️ GuardianOps AI Security Audit
+
+# Define o gatilho: Corre automaticamente sempre que houver um push na branch main
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+    # 1. Descarrega o código do repositório para a máquina virtual
+    - name: 📥 Checkout repository code
+      uses: actions/checkout@v4
+
+    # 2. Configura o ambiente Python na máquina virtual
+    - name: 🐍 Setup Python
+      uses: actions/actions-setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip' # Acelera os futuros workflows guardando a cache
+
+    # 3. Instala as dependências listadas no teu requirements.txt
+    - name: 📦 Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # 4. Executa o Agente DevSecOps injetando a chave guardada nos Secrets
+    - name: 🧠 Run GuardianOps AI Agent
+      env:
+        GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        PYTHONPATH: src # Garante que o Python encontra os módulos na pasta src
+      run: |
+        python src/main.py
+
+    # 5. Salva o relatório gerado como um artefacto para download no painel do GitHub
+    - name: 💾 Upload Security Report
+      if: always() # Garante que guarda o relatório mesmo que o script detete falhas
+      uses: actions/upload-artifact@v4
+      with:
+        name: guardianops-security-report
+        path: reports/
+        retention-days: 7
