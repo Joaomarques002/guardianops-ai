@@ -1,50 +1,103 @@
 import os
 from dotenv import load_dotenv # type: ignore (caso o linter reclame)
+from crewai import LLM, Agent, Task, Crew, Process
 
-from google import genai
-from google.genai import types
-
-# Carrega as variáveis do ficheiro .env
+# Carrega as variáveis de ambiente (.env)
 load_dotenv()
 
+# 1. Configurar os Motores de IA (LLMs) usando o padrão moderno do CrewAI
+api_key = os.getenv("GEMINI_API_KEY")
+if not api_key:
+    raise ValueError("ERRO: GEMINI_API_KEY não encontrada no ficheiro .env!")
 
-def get_gemini_client():
-    """Inicializa o cliente oficial do Gemini usando a API Key do .env"""
-    api_key = os.getenv("GEMINI_API_KEY")
-    if not api_key:
-        raise ValueError("ERRO: GEMINI_API_KEY não encontrada no ficheiro .env!")
-    return genai.Client(api_key=api_key)
+# Modelo ultra-especializado em cibersegurança e deteção de falhas
+cyber_llm = LLM(
+    model="gemini/gemini-3.8-flash",
+    api_key=api_key,
+    temperature=0.1
+)
 
-def run_security_audit(code_snippet: str) -> str:
+# Modelo geral focado em excelente raciocínio e revisão de software
+software_llm = LLM(
+    model="gemini/gemini-3.8-flash",
+    api_key=api_key,
+    temperature=0.2
+)
+
+def run_advanced_crew_audit(code_content: str) -> str:
     """
-    Submete o código ao Gemini com um System Prompt altamente especializado
-    que força a IA a atuar como um Hacker Ético / Auditor DevSecOps.
-    """
-    client = get_gemini_client()
-    
-    system_instruction = """
-    Tu és um Engenheiro de DevSecOps Sénior e Hacker Ético Especialista em Auditoria de Código (SAST).
-    O teu trabalho é analisar o código fornecido pelo utilizador e identificar falhas graves de segurança baseadas no OWASP Top 10.
-    
-    Regras estritas de resposta:
-    1. Sê direto, técnico e profissional.
-    2. Identifica apenas falhas reais de segurança (como segredos expostos, vulnerabilidades de injeção, falhas de lógica). Ignora avisos estéticos ou estilo de código (PEP8).
-    3. Para cada falha encontrada, apresenta:
-       - Nível de Risco (Crítico, Alto, Médio, Baixo)
-       - Descrição Técnica da Vulnerabilidade
-       - Exemplo de como corrigir o código de forma segura.
-    4. Responde obrigatoriamente em formato Markdown limpo e em Português.
+    Orquestra a equipa de agentes (Auditor + Revisor) usando o CrewAI
+    para gerar um relatório de segurança ultra-preciso.
     """
     
-    # Chamada oficial usando o SDK moderno da Google (Gemini 3.8 Flash)
-    response = client.models.generate_content(
-        model='gemini-3.8-flash',
-#        model='gemini-3.8-pro',
-        contents=f"Por favor, audita o seguinte código:\n\n{code_snippet}",
-        config=types.GenerateContentConfig(
-            system_instruction=system_instruction,
-            temperature=0.2, # Baixa temperatura para evitar alucinações técnicas
-        )
+    # -------------------------------------------------------------
+    # 2. DEFINIÇÃO DOS AGENTES
+    # -------------------------------------------------------------
+    
+    auditor_agent = Agent(
+        role="Hacker Ético & Auditor de Segurança",
+        goal="Identificar agressivamente falhas críticas de segurança (OWASP Top 10) no código fornecido.",
+        backstory=(
+            "És um especialista em testes de penetração em código (SAST). O teu olho clínico "
+            "deteta vulnerabilidades ocultas como injeções, segredos expostos em texto limpo, "
+            "e falhas de controlo de acessos. A tua postura é implacável para garantir risco zero."
+        ),
+        llm=cyber_llm,
+        verbose=True
     )
+
+    revisor_agent = Agent(
+        role="Engenheiro DevSecOps Sénior & Revisor de Código",
+        goal="Analisar os riscos apontados pelo Auditor, eliminar falsos positivos e formatar a solução ideal.",
+        backstory=(
+            "És um experiente arquiteto de software focado em segurança de pipelines. O teu papel "
+            "é filtrar os alertas do Auditor para garantir que a equipa só recebe avisos legítimos. "
+            "Sabes como escrever código seguro, eficiente e conheces as melhores práticas de remediação."
+        ),
+        llm=software_llm,
+        verbose=True
+    )
+
+    # -------------------------------------------------------------
+    # 3. DEFINIÇÃO DAS TAREFAS
+    # -------------------------------------------------------------
     
-    return response.text
+    task_audit = Task(
+        description=(
+            f"Analisa minuciosamente o seguinte código:\n\n{code_content}\n\n"
+            "Cria uma lista detalhada de todas as possíveis falhas de segurança encontradas. "
+            "Anota o ficheiro, a linha aproximada e a razão do perigo."
+        ),
+        expected_output="Uma lista estruturada contendo apenas as vulnerabilidades potenciais e os seus vetores de ataque.",
+        agent=auditor_agent
+    )
+
+    task_review = Task(
+        description=(
+            "Examina a lista gerada pelo Auditor de Segurança. Valida se os riscos são reais. "
+            "Para cada risco confirmado, cria um bloco estruturado contendo:\n"
+            "- Nível de Risco (Crítico, Alto, Médio, Baixo)\n"
+            "- Descrição Clara do Problema\n"
+            "- Código Corrigido e Seguro que resolve a falha.\n\n"
+            "Importante: Filtra quaisquer alarmes falsos. Responde estritamente em Português e formato Markdown limpo."
+        ),
+        expected_output="Um relatório final unificado em Markdown contendo os riscos validados e as respetivas correções.",
+        agent=revisor_agent
+    )
+
+    # -------------------------------------------------------------
+    # 4. CRIAÇÃO DA EQUIPA (CREW) E EXECUÇÃO
+    # -------------------------------------------------------------
+    
+    security_crew = Crew(
+        agents=[auditor_agent, revisor_agent],
+        tasks=[task_audit, task_review],
+        process=Process.sequential, # O Auditor corre primeiro, o Revisor corre a seguir
+        verbose=True
+    )
+
+    # Inicia o fluxo de trabalho da equipa
+    result = security_crew.kickoff()
+    
+    # O CrewAI devolve um objeto CrewOutput, convertemos para string de forma segura
+    return str(result)
