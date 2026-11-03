@@ -19,7 +19,8 @@ def get_last_modified_file() -> str:
         # Filtra para encontrar apenas ficheiros Python que ainda existem e ignorar a pasta src/ e tests/
         for f in files:
             if f.endswith('.py') and os.path.exists(f) and not f.startswith('src/'):
-                return f
+                if not any(f.startswith(p) for p in ['src/', 'tests/', '.venv', 'venv']):
+                    return f
                 
     except Exception:
         # Se der erro (ex: primeiro commit ou sem histórico), tenta o git status
