@@ -1,7 +1,7 @@
 import os
-from pipeline_input import get_last_modified_file, read_code_file, format_code_for_ai
-from agents import run_advanced_crew_audit
-from output_handler import save_security_report
+from src.pipeline_input import get_last_modified_file, read_code_file, format_code_for_ai
+from src.agents import run_advanced_crew_audit
+from src.output_handler import save_security_report
 
 def main():
     print("🚀 A iniciar a auditoria AVANÇADA com CrewAI (Gemini 3.8)...")
