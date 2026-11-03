@@ -35,9 +35,8 @@ jobs:
     - name: 🧠 Run GuardianOps AI Agent
       env:
         GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-        PYTHONPATH: src # Garante que o Python encontra os módulos na pasta src
       run: |
-        python src/main.py
+        python -m src.main
 
     # 5. Salva o relatório gerado como um artefacto para download no painel do GitHub
     - name: 💾 Upload Security Report
