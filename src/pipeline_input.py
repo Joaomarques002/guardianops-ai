@@ -4,11 +4,19 @@ import subprocess
 def get_last_modified_file() -> str:
     """
     Descobre dinamicamente qual foi o último ficheiro Python (.py) 
-    modificado no repositório, garantindo compatibilidade total com CI/CD.
+    modificado no repositório, priorizando ficheiros novos/customizados na raiz.
     """
     root_dir = os.getcwd()
+    
+    # 1. Passo de recurso infalível: Se existirem scripts soltos criados pelo utilizador 
+    # na raiz (como segredo.py), damos-lhe prioridade absoluta para validação
+    for item in os.listdir(root_dir):
+        if item.endswith('.py') and item not in ['main.py', 'segredo.py_backup']:
+            if os.path.isfile(os.path.join(root_dir, item)):
+                return item
+
     try:
-        # 1. Procura alterações no último commit de forma limpa na raiz do repositório
+        # 2. Procura alterações no último commit de forma limpa na raiz do repositório
         result = subprocess.run(
             ["git", "show", "--name-only", "--pretty=format:", "HEAD"],
             capture_output=True, text=True, check=True, cwd=root_dir
@@ -21,7 +29,7 @@ def get_last_modified_file() -> str:
                 if not any(f.startswith(p) for p in ['src/', 'tests/', '.venv', 'venv']):
                     return f
 
-        # 2. Alternativa: Verifica o log recente caso o 'git show HEAD' venha vazio
+        # 3. Alternativa via log recente
         result = subprocess.run(
             ["git", "log", "-n", "5", "--name-only", "--pretty=format:"],
             capture_output=True, text=True, check=True, cwd=root_dir
@@ -34,15 +42,9 @@ def get_last_modified_file() -> str:
                     return f
 
     except Exception as e:
-        print(f"[Aviso Git]: Falha ao ler histórico na cloud ({e}). A tentar varredura direta...")
+        print(f"[Aviso Git]: Falha ao ler histórico ({e}). A usar fallback estático.")
 
-    # 3. Solução de recurso infalível: Se o Git falhar na Cloud, procura o ficheiro 'segredo.py' ou outro .py na raiz
-    for item in os.listdir(root_dir):
-        if item.endswith('.py') and item not in ['main.py']:
-            if os.path.isfile(os.path.join(root_dir, item)):
-                return item
-
-    # Se nada mais funcionar, devolve o ficheiro cobaia padrão
+    # Se nada mais for encontrado na raiz ou no Git, usa o ficheiro padrão de testes
     return os.path.join("tests", "test_vulnerable.py")
 
 def read_code_file(file_path: str) -> str:
