@@ -1,83 +1,80 @@
 # GuardianOps AI 🛡️🤖
 
-> Automação de segurança e operações potenciada por Inteligência Artificial.
+> Um auditor de segurança estática (SAST) dinâmico e automatizado para repositórios Git, potenciado por IA (CrewAI & Gemini).
 
-O **GuardianOps AI** é uma ferramenta desenvolvida em Python concebida para integrar inteligência artificial nas rotinas de auditoria, análise e operações de segurança. O sistema automatiza tarefas críticas de verificação, analisa padrões de risco e gera relatórios detalhados para equipas de SecOps.
+O **GuardianOps AI** é uma ferramenta inteligente concebida para monitorizar, isolar e analisar vulnerabilidades de segurança em código-fonte em tempo real. Integrado diretamente com pipelines de CI/CD através de GitHub Actions, o sistema utiliza subprocessos do Git para identificar automaticamente quais os ficheiros que foram modificados ou adicionados num commit, submetendo-os a uma auditoria rigorosa conduzida por uma equipa de agentes autónomos de IA.
 
 ---
 
-## 🚀 Funcionalidades
+## 🚀 Funcionalidades Dinâmicas
 
-- **Análise Inteligente**: Avaliação automatizada de eventos e configurações recorrendo a modelos de IA.
-- **Geração de Relatórios**: Exportação automática de relatórios detalhados diretamente para a diretoria `reports/`.
-- **Automação CI/CD**: Workflows integrados através de GitHub Actions (`.github/workflows/`).
-- **Suíte de Testes**: Cobertura e validação contínua do código através de testes unitários (`tests/`).
+- **Deteção de Alvos Inteligente**: O pipeline de entrada (`src/pipeline_input.py`) interage com o Git do sistema para extrair apenas os ficheiros modificados recentemente, garantindo auditorias rápidas, focadas e eficientes.
+- **Análise Multiafente (CrewAI)**: Orquestra um debate ético simulado entre dois perfis especialistas:
+  - **Hacker Ético / Auditor de Segurança**: Tenta encontrar falhas críticas (ex: credenciais fixas expostas em código como em `segredo.py`, SQL Injection, má gestão de recursos).
+  - **Engenheiro DevSecOps**: Valida os riscos, elimina falsos positivos e desenha planos de mitigação estruturados com base no **OWASP Top 10**.
+- **Arquivamento Automatizado**: Limpa o histórico de execuções anteriores a cada ciclo e gera relatórios analíticos limpos e isolados em formato Markdown dentro da diretoria `reports/`.
+- **Automação Nativa em Nuvem**: Pipeline CI/CD configurado de raiz utilizando workflows nativos do GitHub Actions.
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Estrutura Arquitetural do Projeto
 
-- **[Python](https://python.org)** (v3.10 ou superior)
-- **Bibliotecas Principais**: Listadas detalhadamente em `requirements.txt` (ex: SDKs de IA, processamento de dados).
-- **GitHub Actions**: Automatização de pipelines e integração contínua.
+```text
+├── .github/workflows/
+│   └── security_audit.yml     # Configuração e automação do pipeline CI/CD na Cloud
+├── reports/                   # Arquivo de relatórios de auditoria gerados (.md)
+├── src/
+│   ├── __init__.py
+│   ├── agents.py              # Definição e papéis da equipa de agentes CrewAI
+│   ├── main.py                # Orquestrador central e gestor de ciclo de vida do fluxo
+│   ├── output_handler.py      # Formatador e escritor de relatórios de saída
+│   └── pipeline_input.py      # Sensor dinâmico de deteção de alterações via Git
+├── tests/
+│   └── test_vulnerable.py     # Script cobaia estático para testes de regressão
+└── requirements.txt           # Dependências do ecossistema (CrewAI, LangChain, SDKs)
+```
 
-## 📦 Como Instalar e Executar
-
-Siga os passos abaixo para configurar o ambiente de desenvolvimento local.
+## 📦 Configuração e Instalação Local
 
 ### Pré-requisitos
-Antes de começar, verifique se possui instalado:
-- **Python 3.10+**
-- **Pip** (gestor de pacotes do Python)
+- **Python 3.11** ou superior instalado.
+- Uma chave de API válida da Google AI Studio (`GEMINI_API_KEY`).
 
-### Configuração
+### Passos para Configuração
 
-1. Clone o repositório:
+1. Clone este repositório:
    ```bash
    git clone https://github.com
-   ```
-
-2. Aceda à pasta do projeto:
-   ```bash
    cd guardianops-ai
    ```
 
-3. Crie e ative um ambiente virtual (recomendado):
+2. Crie e ative um ambiente virtual isolado:
    ```bash
-   # No Linux/macOS:
-   python3 -m venv venv
-   source venv/bin/activate
-
-   # No Windows:
    python -m venv venv
+   # No Windows:
    .\venv\Scripts\activate
+   # No Linux/macOS:
+   source venv/bin/activate
    ```
 
-4. Instale as dependências necessárias:
+3. Instale as dependências requeridas:
    ```bash
    pip install -r requirements.txt
    ```
 
-### Configuração de Variáveis de Ambiente
-O projeto pode requerer chaves de API e credenciais seguras. Crie um ficheiro `.env` na raiz do projeto (nunca envie chaves reais para o repositório público):
-```env
-# Exemplo de configuração
-API_KEY=sua_chave_aqui
-ENVIRONMENT=development
-```
+4. Configure as suas credenciais locais criando um ficheiro `.env` na raiz do projeto:
+   ```env
+   GEMINI_API_KEY=o_seu_token_aqui
+   ```
 
-## ⚙️ Execução e Testes
+## ⚙️ Como Executar e Testar
 
-Para executar o script principal do projeto localizado em `src/`:
+O projeto foi desenhado de forma modular. Para simular o comportamento automático da Cloud na sua máquina local, basta criar ou editar qualquer script Python na raiz (como o `segredo.py`) e executar o orquestrador principal como módulo:
+
 ```bash
 python -m src.main
 ```
 
-Para correr a suíte de testes automatizados:
-```bash
-pytest # ou python -m unittest discover tests
-```
-
-Os resultados analíticos e auditorias serão guardados de forma estruturada dentro da pasta `reports/`.
+O sistema detetará a atividade no ficheiro, invocará a equipa de agentes e guardará o resultado em `reports/`.
 
 ## 📄 Licença
 
-Este projeto é open-source. Consulte os termos de utilização ou adicione um ficheiro de `LICENSE` para mais detalhes.
+Este projeto é open-source e está disponível para fins educativos e de demonstração de portfólio SecOps.
